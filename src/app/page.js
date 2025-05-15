@@ -1,61 +1,195 @@
-'use client';  // 聲明這是客戶端組件，允許使用 React hooks 和事件處理
+/*
+==================== Next.js 基礎概念 ====================
 
-// 導入必要的依賴
-import Image from "next/image";  // Next.js 的圖片優化組件
-import { useState } from "react";  // React 的狀態管理 hook
-import TaskList from "./components/TaskList";  // 導入自定義的任務列表組件
+Next.js 是一個基於 React 的全端框架，提供許多開箱即用的功能：
 
+1. 檔案系統路由（File-system Routing）
+   - 在 app 目錄下的 page.js 文件會自動成為路由頁面
+   - 例如：app/page.js 對應 "/"，app/about/page.js 對應 "/about"
+   更多資訊：https://nextjs.org/docs/app/building-your-application/routing
+
+2. 客戶端與伺服器端組件
+   - 默認所有組件都是伺服器端組件（Server Component）
+   - 使用 'use client' 指令將組件標記為客戶端組件（Client Component）
+   更多資訊：https://nextjs.org/docs/app/building-your-application/rendering/client-components
+
+==================== React 基礎概念 ====================
+
+React 是一個用於構建用戶界面的 JavaScript 庫：
+
+1. 組件（Components）
+   - React 應用程序由組件構建而成
+   - 組件可以是函數或類，返回 JSX
+   更多資訊：https://react.dev/learn/your-first-component
+
+2. Hooks
+   - useState: 用於管理組件狀態
+   - useEffect: 處理副作用
+   - useContext: 跨組件共享數據
+   更多資訊：https://react.dev/reference/react/hooks
+
+3. 單向數據流
+   - 數據總是從父組件流向子組件
+   - 通過 props 傳遞數據和回調函數
+   更多資訊：https://react.dev/learn/sharing-state-between-components
+
+==================== 代碼解析 ====================
+*/
+
+// 聲明這是客戶端組件
+// 這允許我們使用瀏覽器 API 和 React hooks
+'use client';
+
+// 導入必要的模組
+import Link from "next/link";
+
+// useState 是 React 最基本的 Hook
+// 用於在函數組件中管理狀態
+import { useState, useEffect } from "react";
+
+// 導入自定義組件
+// 這展示了 React 的組件化特性
+import TaskList from "../components/TaskList";
+
+// 定義首頁組件
+// 在 Next.js 中，這個組件會自動成為根路由 ("/") 的頁面
 export default function Home() {
-  // 狀態管理
-  // tasks: 儲存所有任務的陣列
-  // setTasks: 用於更新 tasks 陣列的函數
+  // 使用 useState Hook
+  // 語法：const [狀態值, 設置狀態的函數] = useState(初始值)
+  
+  // tasks 數組用於存儲所有任務
+  // setTasks 函數用於更新 tasks 狀態
   const [tasks, setTasks] = useState([]);
-
-  // newTask: 儲存新任務的輸入值
-  // setNewTask: 用於更新輸入值的函數
+  
+  // newTask 存儲輸入框的當前值
+  // setNewTask 用於更新輸入框的值
   const [newTask, setNewTask] = useState('');
 
-  // 添加新任務的處理函數
+  const [nextId, setNextId] = useState(1);
+
+  useEffect(() => {
+    const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    setTasks(savedTasks);
+    const maxId = savedTasks.reduce((max, task) => Math.max(max, task.id), 0);
+    setNextId(maxId + 1);
+  }, []);
+
+  // 添加任務的函數
+  // 在 React 中，我們通常將事件處理函數定義在組件內部
   const addTask = () => {
-    console.log("Before:", tasks);  // 記錄添加前的任務列表
-    console.log("New Task:", newTask);  // 記錄新添加的任務
+    // 除錯信息
+    console.log("Before:", tasks);
+    console.log("NewTask:", newTask);
     
-    // 創建新的任務陣列，使用展開運算符 (...) 複製原有任務，並添加新任務
-    const updateTasks = [...tasks, newTask];
+    // 使用展開運算符創建新數組
+    // 這是 React 中確保狀態不可變性的重要概念
+    // 直接修改狀態（如 tasks.push()）是不好的做法
+    const newTaskObj = {
+      id: nextId,
+      title: newTask,
+      description: '',
+    };
+    const updatedTasks = [...tasks, newTaskObj];
     
-    // 更新任務列表狀態
-    setTasks(updateTasks);
-    console.log("After:", updateTasks);  // 記錄更新後的任務列表
+    // 使用 setState 更新狀態
+    // 這會觸發 React 的重新渲染機制
+    setTasks(updatedTasks);
+    
+    console.log("After:", updatedTasks);
     
     // 清空輸入框
     setNewTask('');
-  }; 
 
-  // 渲染用戶界面
+    setNextId(nextId + 1);
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+  };
+
+  const handleDelete = (index) => {
+    const newTasks = tasks.filter((_, i) => i !== index);
+    setTasks(newTasks);
+    localStorage.setItem('tasks', JSON.stringify(newTasks));
+  }
+
+  // 返回 JSX
+  // JSX 是 JavaScript 的語法擴展，允許在 JS 中編寫類似 HTML 的代碼
   return (
-    // main 容器，使用 Tailwind CSS 添加內邊距
-    <main className="p-4">
-      {/* 標題區域 */}
+    // 使用 Tailwind CSS 進行樣式設置
+    // Tailwind 是一個實用優先的 CSS 框架
+    // 更多資訊：https://tailwindcss.com/docs
+    <main className="p-4 max-w-md mx-auto">
       <h1 className="text-2xl font-bold">Task Board</h1>
 
-      {/* 輸入區域：包含輸入框和添加按鈕 */}
+      {/* 輸入區域 */}
+      {/* flex 布局使元素並排排列 */}
       <div className="flex gap-2 mb-4">
-        {/* 任務輸入框 */}
-        <input 
-          className="border p-2 flex-1"  // 樣式：邊框、內邊距、彈性佈局
-          placeholder="Enter a task"  // 佔位提示文字
-          value={newTask}  // 綁定到 newTask 狀態
-          onChange={(e) => setNewTask(e.target.value)}  // 當輸入改變時更新 newTask
+        {/*
+          受控組件（Controlled Component）
+          - value 綁定到 state
+          - onChange 處理用戶輸入
+          更多資訊：https://react.dev/reference/react-dom/components/input
+        */}
+        <input
+          className="border p-2 flex-1"
+          placeholder="Enter a task"
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
         />
-        {/* 添加按鈕 */}
+        
+        {/*
+          事件處理
+          - onClick 綁定點擊事件處理函數
+          - 使用箭頭函數或 .bind() 確保正確的 this 上下文
+        */}
         <button
-          className="bg-blue-500 text-white  px-4"  // 樣式：藍色背景、白色文字、水平內邊距
-          onClick={addTask}  // 點擊時執行 addTask 函數
-        >Add</button>
-      </div>  
+          className="bg-blue-500 text-white px-4"
+          onClick={addTask}
+        >
+          Add
+        </button>
+      </div>
 
-      {/* 任務列表組件：傳入 tasks 陣列作為 props */}
-      <TaskList tasks={tasks}/>
+      {/*
+        組件組合（Component Composition）
+        - 將數據通過 props 傳遞給子組件
+        - 這實現了關注點分離和代碼重用
+        更多資訊：https://react.dev/learn/passing-props-to-a-component
+      */}
+      <TaskList tasks={tasks} onDelete={handleDelete} />
     </main>
   );
 }
+
+/*
+==================== 推薦學習資源 ====================
+
+1. React 官方文檔
+   - https://react.dev/learn
+   - 包含互動式教程和完整的 API 參考
+
+2. Next.js 學習資源
+   - 官方文檔：https://nextjs.org/docs
+   - 學習平台：https://nextjs.org/learn
+
+3. JavaScript 基礎
+   - MDN Web Docs：https://developer.mozilla.org/zh-TW/docs/Web/JavaScript
+   - 現代 JavaScript 教程：https://javascript.info/
+
+4. 開發工具
+   - React Developer Tools 瀏覽器擴展
+   - VS Code 的 ES7+ React/Redux/React-Native snippets 插件
+
+5. 狀態管理進階學習
+   - Redux：https://redux.js.org/
+   - Zustand：https://github.com/pmndrs/zustand
+
+6. 樣式解決方案
+   - Tailwind CSS：https://tailwindcss.com/
+   - Styled Components：https://styled-components.com/
+
+學習建議：
+1. 先掌握 JavaScript 基礎
+2. 學習 React 核心概念（組件、props、state）
+3. 理解 React Hooks 的使用
+4. 學習 Next.js 特有功能
+5. 實踐！建立小項目來鞏固所學
+*/
